@@ -145,7 +145,7 @@ public class OrderingSystem {
 
     public void updateOrder(HashMap<Integer, Integer> orderList, Scanner userInput, int breakPoint) {
         this.displayMenu();
-        System.out.println(RESET + "\nYour Order list is(ID=quty): " + orderList.toString());
+        System.out.println(RESET + "\nYour ORDER LIST is(ID=quty): " + orderList.toString());
         System.out.println(BRIGHTPINK + "\nPlease enter the existing ITEM ID, to update with new ITEM ID");
         System.out.println("or enter " + breakPoint + " to EXIT from updating order\n" + RESET);
 
@@ -162,33 +162,39 @@ public class OrderingSystem {
             String oldItemName = this.menu.get(oldItemId).itemName;
             if (orderList.containsKey(oldItemId)) {
                 System.out.printf(
-                        "\nOkay, %d %s(s) in your order list, what do you want to do?\n%s\n%s\n\nEnter choice number: ",
+                        "\nOkay, %d %s%s in your order list, what do you want to do?\n%s\n%s\n%s\n\nEnter choice number: ",
                         itemQunty,
                         oldItemName,
+                        itemQunty > 1 ? "'s" : "",
                         "1. Delete from order list",
-                        "2. Replace with new (only one at a time)");
+                        "2. Replace with new (only one at a time)",
+                        "3. Remove this entire item from order list");
                 int choice = userInput.nextInt();
                 userInput.nextLine();
 
                 if (choice == 1) {
                     this.colorConsole("\nchoice: Delete item\n", CYAN, true);
-                    if (itemQunty > 1) {
-                        System.out.printf("\nHow many that you want to delete?(should be <= %d): ", itemQunty);
-                        int remove = userInput.nextInt();
+                    if (itemQunty >= 1) {
+                        System.out.printf("\nHow many %s's you want to delete?(should be <= %d, >= 1): ", oldItemName,
+                                itemQunty);
+                        int removeQunty = userInput.nextInt();
                         userInput.nextLine();
 
-                        if (remove < itemQunty) {
-                            orderList.replace(oldItemId, (itemQunty - remove));
+                        if (removeQunty < itemQunty && removeQunty > 0) {
+                            orderList.replace(oldItemId, (itemQunty - removeQunty));
 
-                        } else {
+                        } else if (removeQunty == itemQunty) {
                             orderList.remove(oldItemId);
 
+                        } else {
+                            System.out.println("\nInvalid quantity, try again\n");
                         }
+
+                        System.out.printf("Done, deleted %d %s%s from your order list\n\n", removeQunty, oldItemName,
+                                removeQunty > 1 ? "'s" : "");
                     }
 
-                    System.out.println("Done, deleted from your order list\n");
-
-                } else {
+                } else if (choice == 2) {
                     this.colorConsole("\nchoice: Replace an item with new\n", CYAN, true);
 
                     System.out.print("New item ID: ");
@@ -206,11 +212,11 @@ public class OrderingSystem {
 
                         orderList.put(newItmeId, 1);
                         // Every time user select to replace an item we need to reduce the quantity of
-                        // -old order by 1 or completly remove the oldorder if the quantity is only 1
-                        // so in both cases we need to update the order list with the new order
-                        // -to replace exactly one
+                        // -old order by 1 or completly remove the oldorder if it's current quantity is
+                        // only 1 so in both cases we need to update the order list with the new order
+                        // -replace exactly one, and remove exatly one
 
-                        System.out.printf("Done!, replaced 1 %d with 1 %d\n\n", oldItemName,
+                        System.out.printf("Done!, replaced 1 %s with 1 %s\n\n", oldItemName,
                                 this.menu.get(newItmeId).itemName);
 
                     } else {
@@ -220,7 +226,14 @@ public class OrderingSystem {
                                 oldItemName);
                     }
 
+                } else {
+                    this.colorConsole("\nchoice: Remove this entire item from order list\n", CYAN, true);
+                    orderList.remove(oldItemId);
+                    System.out.println("Done, this item is been removed from your order list\n");
+
                 }
+
+                System.out.println(RESET + "Your updated order list is(ID=quty): " + orderList.toString());
 
             } else {
                 System.out.println("\nThe item ID " + oldItemId
