@@ -30,37 +30,18 @@ public class OrderingSystem {
     String userName;
     // -------------------------------------------------------
 
-    public void buildMenu(String sourceFile) {
-        if (sourceFile.isBlank())
-            return;
+    public void buildMenu() {
+        Map<Integer, String[]> parsedMenuItems = this.extractMenuItems("src/menuItems.txt");
 
-        try {
-            BufferedReader buffer = new BufferedReader(new FileReader(sourceFile));
+        // System.out.println(parsedMenuItems);
+        for (int itemId : parsedMenuItems.keySet()) {
+            String[] itemInfo = parsedMenuItems.get(itemId);
 
-            Map<Integer, String[]> parsedItems = new HashMap<>();
-            String line;
-
-            int id = 0;
-            while ((line = buffer.readLine()) != null) {
-                parsedItems.put(id, line.split(","));
-                id++;
-
-            }
-
-            System.out.println(parsedItems);
-
-            for (int itemId : parsedItems.keySet()) {
-                String[] itemInfo = parsedItems.get(itemId);
-
-                this.menu.add(new MenuItem(itemId, itemInfo[0].strip(), Boolean.parseBoolean(itemInfo[1].strip()),
-                        Float.parseFloat(itemInfo[2].strip())));
-            }
-            // auto closes buffer
-
-        } catch (IOException e) {
-            System.out.println("Error occured: " + e.getMessage());
-
+            this.menu.add(new MenuItem(itemId, itemInfo[0].strip(), Boolean.parseBoolean(itemInfo[1].strip()),
+                    Float.parseFloat(itemInfo[2].strip())));
         }
+
+        System.out.println("Completed building the Menu\nDisplaying the menu");
 
         return;
     }
@@ -304,6 +285,32 @@ public class OrderingSystem {
 
     // Helper methods ---------------------------------------
 
+    public Map<Integer, String[]> extractMenuItems(String sourceFile) {
+        Map<Integer, String[]> parsedItems = new HashMap<>();
+
+        if (sourceFile.isBlank())
+            return parsedItems;
+
+        try {
+            BufferedReader buffer = new BufferedReader(new FileReader(sourceFile));
+
+            String line;
+            int id = 0;
+
+            while ((line = buffer.readLine()) != null) {
+                parsedItems.put(id, line.split(","));
+                id++;
+
+            }
+            // auto closes buffer
+        } catch (IOException e) {
+            System.out.println("Error occured: " + e.getMessage());
+
+        }
+
+        return parsedItems;
+    }
+
     private final float parseOrder(HashMap<Integer, Integer> orderList) {
         float total = 0.0f;
         System.out.println("");
@@ -335,11 +342,10 @@ public class OrderingSystem {
     public static void main(String[] args) {
         OrderingSystem cafeObj = new OrderingSystem();
 
-        cafeObj.buildMenu("src/menuItems.txt");
-
         Scanner userIn = new Scanner(System.in);
         cafeObj.menuSize = cafeObj.menu.size();
 
+        cafeObj.buildMenu();
         cafeObj.displayMenu();
         cafeObj.greetUser(userIn); // only limited to cafe class
         cafeObj.takeOrder((cafeObj.menuSize), userIn);
