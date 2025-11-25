@@ -34,14 +34,20 @@ public class OrderingSystem {
         Map<Integer, String[]> parsedMenuItems = this.extractMenuItems("src/menuItems.txt");
 
         // System.out.println(parsedMenuItems);
-        for (int itemId : parsedMenuItems.keySet()) {
-            String[] itemInfo = parsedMenuItems.get(itemId);
 
-            this.menu.add(new MenuItem(itemId, itemInfo[0].strip(), Boolean.parseBoolean(itemInfo[1].strip()),
-                    Float.parseFloat(itemInfo[2].strip())));
+        if (parsedMenuItems.size() > 0) {
+            for (int itemId : parsedMenuItems.keySet()) {
+                String[] itemInfo = parsedMenuItems.get(itemId);
+
+                this.menu.add(new MenuItem(itemId, itemInfo[0].strip(), Boolean.parseBoolean(itemInfo[1].strip()),
+                        Float.parseFloat(itemInfo[2].strip())));
+            }
+
+            System.out.println("Completed building the Menu\nDisplaying the menu");
+
+        } else {
+            System.out.println("\nThere are no items in menuItems.txt file, add some to create menu\n");
         }
-
-        System.out.println("Completed building the Menu\nDisplaying the menu");
 
         return;
     }

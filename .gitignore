@@ -2,4 +2,3 @@ src/*.md
 out/*.md
 /out
 /.vscode
-**/*.txt
