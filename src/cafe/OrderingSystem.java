@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Map;
 import java.util.Scanner;
+import java.math.BigDecimal;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -19,28 +20,30 @@ public class OrderingSystem {
     public static final String CYAN = "\u001B[36m";
     public static final String PURPLE = "\u001B[35m";
 
-    public static final String BRIGHTPINK = "\u001B[35;1m";
-    public static final String BRIGHTYELLOW = "\u001B[33;1m";
-    public static final String BRIGHTRED = "\u001B[31;1m";
+    public static final String BRIGHTPINK = "\u001B[95m";
+    public static final String BRIGHTYELLOW = "\u001B[93m";
+    public static final String BRIGHTRED = "\u001B[31m";
 
     // -------------------------------------------------------
-    ArrayList<MenuItem> menu = new ArrayList<>();
-    HashMap<Integer, Integer> userOrderList = new HashMap<>();
+    protected static ArrayList<MenuItem> menu = new ArrayList<>();
+    protected static Map<Integer, Integer> userOrderList = new HashMap<>();
+    protected static String userName;
     int menuSize;
-    String userName;
     // -------------------------------------------------------
 
     public void buildMenu() {
         Map<Integer, String[]> parsedMenuItems = this.extractMenuItems("src/menuItems.txt");
 
-        // System.out.println(parsedMenuItems);
-
         if (parsedMenuItems.size() > 0) {
             for (int itemId : parsedMenuItems.keySet()) {
-                String[] itemInfo = parsedMenuItems.get(itemId);
+                String[] itemStrings = parsedMenuItems.get(itemId);
 
-                this.menu.add(new MenuItem(itemId, itemInfo[0].strip(), Boolean.parseBoolean(itemInfo[1].strip()),
-                        Float.parseFloat(itemInfo[2].strip())));
+                MenuItem item = new MenuItem(
+                        itemId, itemStrings[0].strip(),
+                        Boolean.parseBoolean(itemStrings[1].strip()),
+                        new BigDecimal(itemStrings[2].strip()));
+
+                menu.add(item);
             }
 
             System.out.println("Completed building the Menu\nDisplaying the menu");
@@ -49,37 +52,35 @@ public class OrderingSystem {
             System.out.println("\nThere are no items in menuItems.txt file, add some to create menu\n");
         }
 
-        return;
     }
 
     public void displayMenu() {
         System.out.println(RESET);
-        this.colorConsole("\n\n\t\t--^-- ourMenu --^--\n", BRIGHTYELLOW, true);
+        this.colorConsole("\n\t\t--^-- ourMenu --^--\n", BRIGHTYELLOW, true);
 
         String formatString = PURPLE + "%-5s %-20s %-12s %-15s\n";
         System.out.printf(formatString, "ID", "Name", "Price", "Available?" + RESET);
 
-        for (MenuItem item : this.menu) {
+        for (MenuItem item : menu) {
             formatString = CYAN + "%-5d %-20s %-12.2f %-15s\n";
             System.out.printf(formatString, item.id, item.itemName, item.price, item.available);
         }
 
-        return;
     }
 
     private void greetUser(Scanner inputScanner) {
         System.out.print(RESET + "\nPlease enter your name: ");
-        this.userName = inputScanner.nextLine();
+        userName = inputScanner.nextLine();
 
-        while (!(this.userName.matches("[a-zA-Z]+"))) {
+        while (!(userName.matches("[a-zA-Z]+"))) {
             System.out.print("Looks like your name isn't valid!, enter a valid name: ");
-            this.userName = inputScanner.nextLine();
+            userName = inputScanner.nextLine();
         }
 
-        this.userName = this.userName.toUpperCase();
+        userName = userName.toUpperCase();
 
-        System.out.println(BRIGHTRED + "\nHello " + this.userName + ", How are you!" + RESET);
-        return;
+        System.out.println(BRIGHTRED + "\nHello " + userName + ", How are you!" + RESET);
+
     }
 
     public void takeOrder(int breakPoint, Scanner userInput) {
@@ -97,21 +98,24 @@ public class OrderingSystem {
                     break;
                 }
 
-                if (this.userOrderList.containsKey(orderId)) {
-                    this.userOrderList.replace(orderId, this.userOrderList.get(orderId) + 1);
+                if (userOrderList.containsKey(orderId)) {
+                    userOrderList.replace(orderId, userOrderList.get(orderId) + 1);
 
-                    System.out.println("Done!, added +1 to existing " + this.menu.get(orderId).itemName + " quantity");
-                    System.out.printf("Now you have %d %s(s) in your oder\n\n", this.userOrderList.get(orderId),
-                            this.menu.get(orderId).itemName);
+                    System.out.println("Done!, added +1 to existing " + menu.get(orderId).itemName + " quantity");
+                    System.out.printf(
+                            "Now you have %d %s%s in your oder\n\n",
+                            userOrderList.get(orderId),
+                            menu.get(orderId).itemName,
+                            userOrderList.get(orderId) > 1 ? "'s" : "");
 
                 } else if (orderId <= this.menuSize && orderId >= 0) {
-                    System.out.printf("how many %s's you want?: ", this.menu.get(orderId).itemName);
+                    System.out.printf("how many %s's you want?: ", menu.get(orderId).itemName);
 
                     int quantity = userInput.nextInt();
                     userInput.nextLine();
 
                     if (quantity > 0) {
-                        this.userOrderList.put(orderId, quantity);
+                        userOrderList.put(orderId, quantity);
 
                     } else {
                         System.out.println("No.. the qantity should be > 0\n");
@@ -134,15 +138,14 @@ public class OrderingSystem {
             }
         }
 
-        return;
     }
 
-    public void confirmOrder(HashMap<Integer, Integer> orderList, Scanner userInput) {
+    public void confirmOrder(Map<Integer, Integer> orderList, Scanner userInput) {
         String choice;
 
         this.colorConsole("\nConfirm your order!\n", BRIGHTPINK, true);
         System.out.println("\nOrder list (ID=quty): " + orderList.toString());
-        this.parseOrder(orderList);
+        this.displayOrderDetails(orderList);
 
         this.colorConsole("\nDo you want anything else? (y/n)('y' to add): ", BRIGHTYELLOW, true);
         choice = userInput.nextLine().toLowerCase();
@@ -151,7 +154,7 @@ public class OrderingSystem {
             this.displayMenu();
             this.takeOrder((this.menuSize), userInput);
             this.colorConsole("\nConfirm your order!\n", BRIGHTPINK, true);
-            this.parseOrder(orderList);
+            this.displayOrderDetails(orderList);
         }
 
         this.colorConsole("\nDo you want to proceed for billing (y/n)('n' to update): ", BRIGHTYELLOW, true);
@@ -167,100 +170,62 @@ public class OrderingSystem {
 
         this.colorConsole("\nPrinting Bill\n", BRIGHTPINK, true);
 
-        return;
     }
 
-    public void updateOrder(HashMap<Integer, Integer> orderList, Scanner userInput, int breakPoint) {
+    public void updateOrder(Map<Integer, Integer> orderList, Scanner userInput, int breakPoint) {
         this.displayMenu();
         System.out.println(RESET + "\nYour ORDER LIST is(ID=quty): " + orderList.toString());
         System.out.println(BRIGHTPINK + "\nPlease enter the existing ITEM ID, to update with new ITEM ID");
         System.out.println("or enter " + breakPoint + " to EXIT from updating order\n" + RESET);
 
+        int oldItemId;
+
         while (true) {
-            System.out.print("Existing item ID in your order list: ");
-            int oldItemId = userInput.nextInt();
-            userInput.nextLine();
+            try {
+                oldItemId = this.getOldItemId(userInput);
 
-            if (oldItemId == breakPoint) {
-                break;
-            }
-
-            int itemQunty = orderList.get(oldItemId);
-            String oldItemName = this.menu.get(oldItemId).itemName;
-            if (orderList.containsKey(oldItemId)) {
-                System.out.printf(
-                        "\nOkay, %d %s%s in your order list, what do you want to do?\n%s\n%s\n%s\n\nEnter choice number: ",
-                        itemQunty,
-                        oldItemName,
-                        itemQunty > 1 ? "'s" : "",
-                        "1. Delete from order list",
-                        "2. Replace with new (only one at a time)",
-                        "3. Remove this entire item from order list");
-                int choice = userInput.nextInt();
+            } catch (InputMismatchException e) {
+                System.out.println("Invalid item ID, try again\n");
                 userInput.nextLine();
 
-                if (choice == 1) {
-                    this.colorConsole("\nchoice: Delete item\n", CYAN, true);
-                    if (itemQunty >= 1) {
-                        System.out.printf("\nHow many %s's you want to delete?(<= %d, >= 1): ", oldItemName,
-                                itemQunty);
-                        int removeQunty = userInput.nextInt();
-                        userInput.nextLine();
+                continue;
+            }
 
-                        if (removeQunty < itemQunty && removeQunty > 0) {
-                            orderList.replace(oldItemId, (itemQunty - removeQunty));
+            if (oldItemId == breakPoint)
+                break;
 
-                        } else if (removeQunty == itemQunty) {
-                            orderList.remove(oldItemId);
+            if (orderList.containsKey(oldItemId)) {
+                MenuItem item = menu.get(oldItemId);
+                int itemQunty = orderList.get(oldItemId);
 
-                        } else {
-                            System.out.println("\nInvalid quantity, try again\n");
-                        }
+                try {
+                    int choice = this.getUserUpdateChoice(item.itemName, itemQunty, userInput);
 
-                        System.out.printf("Done, deleted %d %s%s from your order list\n\n", removeQunty, oldItemName,
-                                removeQunty > 1 ? "'s" : "");
+                    switch (choice) {
+                        case 1:
+                            this.deleteFromOrderList(orderList, userInput, item, itemQunty);
+                            break;
+
+                        case 2:
+                            this.replaceInOrderList(orderList, userInput, item, itemQunty);
+                            break;
+
+                        case 3:
+                            this.removeEntireItemFromOrderList(orderList, oldItemId);
+                            break;
+
+                        default:
+                            System.out.println("Invalid input, Try again\n");
                     }
 
-                } else if (choice == 2) {
-                    this.colorConsole("\nchoice: Replace an item with new\n", CYAN, true);
+                    System.out.println(RESET + "Your updated order list is(ID=quty): " + orderList.toString());
 
-                    System.out.print("New item ID: ");
-                    int newItmeId = userInput.nextInt();
+                } catch (InputMismatchException e) {
+                    System.out.println("Invalid input, try again");
                     userInput.nextLine();
 
-                    if (newItmeId < this.menuSize) {
-                        if (itemQunty > 1) {
-                            orderList.replace(oldItemId, itemQunty - 1);
-
-                        } else {
-                            orderList.remove(oldItemId);
-
-                        }
-
-                        orderList.put(newItmeId, 1);
-                        // Every time user select to replace an item we need to reduce the quantity of
-                        // -old order by 1 or completly remove the oldorder if it's current quantity is
-                        // only 1 so in both cases we need to update the order list with the new order
-                        // -replace exactly one, and remove exatly one
-
-                        System.out.printf("Done!, replaced 1 %s with 1 %s\n\n", oldItemName,
-                                this.menu.get(newItmeId).itemName);
-
-                    } else {
-                        System.out.printf("Nope, item ID's should always be < %d and >= 0\n\n", breakPoint);
-                        System.out.printf(
-                                "The current old item %s isn't been replaced or deleted from your order. \nSo try again\n\n",
-                                oldItemName);
-                    }
-
-                } else {
-                    this.colorConsole("\nchoice: Remove this entire item from order list\n", CYAN, true);
-                    orderList.remove(oldItemId);
-                    System.out.println("Done, this item is been removed from your order list\n");
-
+                    continue;
                 }
-
-                System.out.println(RESET + "Your updated order list is(ID=quty): " + orderList.toString());
 
             } else {
                 System.out.println("\nThe item ID " + oldItemId
@@ -268,17 +233,16 @@ public class OrderingSystem {
 
             }
         }
-
-        return;
     }
 
-    public void printBill(HashMap<Integer, Integer> orderList) {
+    public void printBill(Map<Integer, Integer> orderList) {
 
         System.out.println(BRIGHTRED);
 
         System.out.printf("%-18s %-1s\n", "Item Name", "Price");
 
-        float total = this.parseOrder(orderList);
+        this.displayOrderDetails(orderList);
+        double total = this.getOrderTotal(orderList);
 
         System.out.println("--------------------------------");
         System.out.printf("%-19s", "Total");
@@ -286,7 +250,6 @@ public class OrderingSystem {
         System.out.println("\n--------------------------------");
         System.out.println(RESET);
 
-        return;
     }
 
     // Helper methods ---------------------------------------
@@ -317,22 +280,37 @@ public class OrderingSystem {
         return parsedItems;
     }
 
-    private final float parseOrder(HashMap<Integer, Integer> orderList) {
-        float total = 0.0f;
+    // Helper methods of printBill ----------------------
+
+    private final void displayOrderDetails(Map<Integer, Integer> orderList) {
         System.out.println("");
-        for (int id : orderList.keySet()) {
-            MenuItem item = this.menu.get(id);
+        for (Map.Entry<Integer, Integer> itemEntry : orderList.entrySet()) {
+            MenuItem item = menu.get(itemEntry.getKey());
+            BigDecimal quantity = new BigDecimal(itemEntry.getValue());
 
-            int quantity = orderList.get(id);
-            String itemNameQuty = item.itemName + " x " + quantity;
-            String price = "Rs " + String.format("%.2f", (item.price * quantity)) + " /-";
+            String itemNameAndQuty = item.itemName + " x " + quantity;
+            String price = "Rs " + String.format("%.2f", (item.price.multiply(quantity)).doubleValue()) + " /-";
 
-            System.out.printf("%-18s %-1s\n", itemNameQuty, price);
-            total += (item.price * quantity);
+            System.out.printf("%-18s %-1s\n", itemNameAndQuty, price);
         }
 
-        return total;
     }
+
+    private final double getOrderTotal(Map<Integer, Integer> orderList) {
+        BigDecimal totalPrice = BigDecimal.ZERO;
+
+        for (Map.Entry<Integer, Integer> itemEntry : orderList.entrySet()) {
+            BigDecimal itemPrice = menu.get(itemEntry.getKey()).price;
+            BigDecimal currentItemPrice = new BigDecimal(itemEntry.getValue()).multiply(itemPrice);
+
+            totalPrice = totalPrice.add(currentItemPrice);
+
+        }
+
+        return totalPrice.doubleValue();
+    }
+
+    // --------------------------------------------------
 
     private final void colorConsole(String message, String color, Boolean resetAfter) {
         if (resetAfter) {
@@ -343,25 +321,123 @@ public class OrderingSystem {
 
         }
     }
+
+    // helper methods of updateOrder --------
+
+    public int getOldItemId(Scanner userInput) {
+        int oldItemId;
+        System.out.print("Existing item ID in your order list: ");
+        oldItemId = userInput.nextInt();
+        userInput.nextLine();
+
+        return oldItemId;
+    }
+
+    public int getUserUpdateChoice(String itemName, int itemQunty, Scanner userInput) {
+        System.out.printf(
+                "\nOkay, %d %s%s in your order list, what do you want to do?\n%s\n%s\n%s\n\nEnter choice number: ",
+                itemQunty,
+                itemName,
+                itemQunty > 1 ? "'s" : "",
+                "1. Delete some from order list",
+                "2. Replace with new (only one at a time)",
+                "3. Remove this entire item from order list");
+
+        int choice = userInput.nextInt();
+        userInput.nextLine();
+
+        return choice;
+    }
+
+    public void deleteFromOrderList(Map<Integer, Integer> orderList, Scanner userInput, MenuItem item, int itemQunty) {
+
+        this.colorConsole("\nchoice: Delete item\n", CYAN, true);
+
+        if (itemQunty >= 1) {
+            System.out.printf("\nHow many %s's you want to delete?(<= %d, >= 1): ", item.itemName,
+                    itemQunty);
+            int removeQunty = userInput.nextInt();
+            userInput.nextLine();
+
+            if (removeQunty < itemQunty && removeQunty > 0) {
+                orderList.replace(item.id, (itemQunty - removeQunty));
+
+            } else if (removeQunty == itemQunty) {
+                orderList.remove(item.id);
+
+            } else {
+                System.out.println("\nInvalid quantity, try again\n");
+
+            }
+
+            System.out.printf("Done, deleted %d %s%s from your order list\n\n", removeQunty, item.itemName,
+                    removeQunty > 1 ? "'s" : "");
+        }
+    }
+
+    public void replaceInOrderList(Map<Integer, Integer> orderList, Scanner userInput, MenuItem item, int itemQunty) {
+
+        this.colorConsole("\nchoice: Replace with new\n", CYAN, true);
+
+        System.out.print("New item ID: ");
+        int newItmeId = userInput.nextInt();
+        userInput.nextLine();
+
+        if (newItmeId < this.menuSize) {
+
+            if (orderList.containsKey(newItmeId)) {
+                orderList.replace(newItmeId, orderList.get(newItmeId) + 1);
+
+            } else {
+                orderList.put(newItmeId, 1);
+
+            }
+
+            orderList.replace(item.id, orderList.get(item.id) - 1);
+
+            // Every time user select to replace an item we need to reduce the quantity of
+            // -old order by 1 or completly remove the oldorder if it's current quantity is
+            // only 1 so in both cases we need to update the order list with the new order
+            // -replace exactly one, and remove exatly one
+
+            System.out.printf("Done!, replaced 1 %s with 1 %s\n\n", item.itemName,
+                    menu.get(newItmeId).itemName);
+
+        } else {
+            System.out.printf("Nope, item ID's should always be < %d and >= 0\n\n", this.menuSize);
+            System.out.printf(
+                    "The current old item %s isn't been replaced or deleted from your order. \nSo try again\n\n",
+                    item.itemName);
+        }
+    }
+
+    public void removeEntireItemFromOrderList(Map<Integer, Integer> orderList, int itemId) {
+
+        this.colorConsole("\nchoice: Remove this entire item from order list\n", CYAN, true);
+        orderList.remove(itemId);
+        System.out.println("Done, this item is been removed from your order list\n");
+    }
+    // ---------------------------------
+
     // ------------------------------------------------------
 
     public static void main(String[] args) {
         OrderingSystem cafeObj = new OrderingSystem();
+        cafeObj.buildMenu();
 
         Scanner userIn = new Scanner(System.in);
-        cafeObj.menuSize = cafeObj.menu.size();
+        cafeObj.menuSize = OrderingSystem.menu.size();
 
-        cafeObj.buildMenu();
         cafeObj.displayMenu();
-        cafeObj.greetUser(userIn); // only limited to cafe class
+        cafeObj.greetUser(userIn);
         cafeObj.takeOrder((cafeObj.menuSize), userIn);
 
-        if (cafeObj.userOrderList.size() > 0) {
+        if (OrderingSystem.userOrderList.size() > 0) {
 
-            cafeObj.confirmOrder(cafeObj.userOrderList, userIn);
-            cafeObj.printBill(cafeObj.userOrderList);
+            cafeObj.confirmOrder(OrderingSystem.userOrderList, userIn);
+            cafeObj.printBill(OrderingSystem.userOrderList);
 
-            System.out.println("Your order will get ready shortly " + cafeObj.userName +
+            System.out.println("Your order will get ready shortly " + OrderingSystem.userName +
                     "\n");
         } else {
             System.out.println("Alright, visit us again, bye!");
