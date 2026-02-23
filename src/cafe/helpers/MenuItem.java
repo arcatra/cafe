@@ -1,14 +1,14 @@
-package cafe;
+package cafe.helpers;
 
 // Imports -----------------
 import java.math.BigDecimal;
 // -------------------------
 
 public class MenuItem {
-    int id;
-    String itemName;
-    boolean available;
-    BigDecimal price;
+    public int id;
+    public String itemName;
+    public boolean available;
+    public BigDecimal price;
 
     public MenuItem(int id, String itemName, boolean available, BigDecimal price) {
         this.id = id;

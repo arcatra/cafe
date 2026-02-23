@@ -6,12 +6,14 @@ import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Map;
 import java.util.Scanner;
+
+import cafe.helpers.*;
+
 import java.math.BigDecimal;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-// ---------------------------------------
 
 public class OrderingSystem {
 
@@ -28,7 +30,7 @@ public class OrderingSystem {
     protected static ArrayList<MenuItem> menu = new ArrayList<>();
     protected static Map<Integer, Integer> userOrderList = new HashMap<>();
     protected static String userName;
-    int menuSize;
+    private int menuSize;
     // -------------------------------------------------------
 
     public void buildMenu() {
@@ -68,7 +70,7 @@ public class OrderingSystem {
 
     }
 
-    private void greetUser(Scanner inputScanner) {
+    public void greetUser(Scanner inputScanner) {
         System.out.print(RESET + "\nPlease enter your name: ");
         userName = inputScanner.nextLine();
 
@@ -131,8 +133,7 @@ public class OrderingSystem {
 
             } catch (InputMismatchException e) {
                 System.out.println("Invalid Input: item ID's are Numbers/Integers not String");
-                userInput.nextLine(); // because when a mismatch input is provided for orderId then next
-                                      // - line that is meant to consume the new line character is executing
+                userInput.nextLine(); // Cosume the left over
 
                 System.out.print("Try again: ");
             }
@@ -181,15 +182,7 @@ public class OrderingSystem {
         int oldItemId;
 
         while (true) {
-            try {
-                oldItemId = this.getOldItemId(userInput);
-
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid item ID, try again\n");
-                userInput.nextLine();
-
-                continue;
-            }
+            oldItemId = this.getItemId(userInput, "Enter old item ID: ");
 
             if (oldItemId == breakPoint)
                 break;
@@ -198,35 +191,27 @@ public class OrderingSystem {
                 MenuItem item = menu.get(oldItemId);
                 int itemQunty = orderList.get(oldItemId);
 
-                try {
-                    int choice = this.getUserUpdateChoice(item.itemName, itemQunty, userInput);
+                int choice = this.getUserUpdateChoice(item.itemName, itemQunty, userInput);
 
-                    switch (choice) {
-                        case 1:
-                            this.deleteFromOrderList(orderList, userInput, item, itemQunty);
-                            break;
+                  switch (choice) {
+                    case 1:
+                      this.deleteFromOrderList(orderList, userInput, item, itemQunty);
+                      break;
 
-                        case 2:
-                            this.replaceInOrderList(orderList, userInput, item, itemQunty);
-                            break;
+                    case 2:
+                      this.replaceInOrderList(orderList, userInput, item, itemQunty);
+                      break;
 
-                        case 3:
-                            this.removeEntireItemFromOrderList(orderList, oldItemId);
-                            break;
+                    case 3:
+                      this.removeEntireItemFromOrderList(orderList, oldItemId);
+                      break;
 
-                        default:
-                            System.out.println("Invalid input, Try again\n");
-                    }
-
-                    System.out.println(RESET + "Your updated order list is(ID=quty): " + orderList.toString());
-
-                } catch (InputMismatchException e) {
-                    System.out.println("Invalid input, try again");
-                    userInput.nextLine();
-
-                    continue;
+                    default:
+                      System.out.println("Invalid input, Try again\n");
                 }
 
+                System.out.println(RESET + "Your updated order list is(ID=quty): " + orderList.toString());
+                
             } else {
                 System.out.println("\nThe item ID " + oldItemId
                         + " didn't exist's in your order, check and enter again!\n");
@@ -254,14 +239,13 @@ public class OrderingSystem {
 
     // Helper methods ---------------------------------------
 
-    public Map<Integer, String[]> extractMenuItems(String sourceFile) {
+    private final Map<Integer, String[]> extractMenuItems(String sourceFile) {
         Map<Integer, String[]> parsedItems = new HashMap<>();
 
         if (sourceFile.isBlank())
             return parsedItems;
 
-        try {
-            BufferedReader buffer = new BufferedReader(new FileReader(sourceFile));
+        try (BufferedReader buffer = new BufferedReader(new FileReader(sourceFile))) {
 
             String line;
             int id = 0;
@@ -271,6 +255,7 @@ public class OrderingSystem {
                 id++;
 
             }
+
             // auto closes buffer
         } catch (IOException e) {
             System.out.println("Error occured: " + e.getMessage());
@@ -280,11 +265,11 @@ public class OrderingSystem {
         return parsedItems;
     }
 
-    // Helper methods of printBill ----------------------
+    // Displaying the order details before BILL ----------------------
 
     private final void displayOrderDetails(Map<Integer, Integer> orderList) {
         System.out.println("");
-        for (Map.Entry<Integer, Integer> itemEntry : orderList.entrySet()) {
+        for (var itemEntry : orderList.entrySet()) {
             MenuItem item = menu.get(itemEntry.getKey());
             BigDecimal quantity = new BigDecimal(itemEntry.getValue());
 
@@ -299,7 +284,7 @@ public class OrderingSystem {
     private final double getOrderTotal(Map<Integer, Integer> orderList) {
         BigDecimal totalPrice = BigDecimal.ZERO;
 
-        for (Map.Entry<Integer, Integer> itemEntry : orderList.entrySet()) {
+        for (var itemEntry : orderList.entrySet()) {
             BigDecimal itemPrice = menu.get(itemEntry.getKey()).price;
             BigDecimal currentItemPrice = new BigDecimal(itemEntry.getValue()).multiply(itemPrice);
 
@@ -324,32 +309,55 @@ public class OrderingSystem {
 
     // helper methods of updateOrder --------
 
-    public int getOldItemId(Scanner userInput) {
-        int oldItemId;
-        System.out.print("Existing item ID in your order list: ");
-        oldItemId = userInput.nextInt();
-        userInput.nextLine();
+    public final int getItemId(Scanner userInput, String message) {
+        int id;
 
-        return oldItemId;
+        while (true) {
+            System.out.print(message);
+            String ItemId = userInput.nextLine();
+            try {
+                id = Integer.parseInt(ItemId);
+                break;
+
+            } catch (InputMismatchException e) {
+                System.out.println("Nope.., The ID should be a number! try again\n");
+
+            } catch (Exception e) {
+                System.out.println("Error occured, try again\n");
+
+            }
+        }
+
+        return id;
     }
 
-    public int getUserUpdateChoice(String itemName, int itemQunty, Scanner userInput) {
+    private final int getUserUpdateChoice(String itemName, int itemQunty, Scanner userInput) {
         System.out.printf(
-                "\nOkay, %d %s%s in your order list, what do you want to do?\n%s\n%s\n%s\n\nEnter choice number: ",
+                "\nOkay, %d %s%s in your order list, what do you want to do?\n1. %s\n2. %s\n3. %s\n\nEnter choice number: ",
                 itemQunty,
                 itemName,
                 itemQunty > 1 ? "'s" : "",
-                "1. Delete some from order list",
-                "2. Replace with new (only one at a time)",
-                "3. Remove this entire item from order list");
+                "Delete some from order list",
+                "Replace with new (only one at a time)",
+                "Remove this entire item from order list");
+        int chId;
+        while (true) {
+          String choice = userInput.nextInt();
+          try {
+            chId = Interger.parseInt(choice);
 
-        int choice = userInput.nextInt();
-        userInput.nextLine();
+          } catch (InputMismatchException) {
+            System.out.println("Wrong input, try again\n");
+          
+          }
 
-        return choice;
+        }
+
+        return chId;
     }
 
-    public void deleteFromOrderList(Map<Integer, Integer> orderList, Scanner userInput, MenuItem item, int itemQunty) {
+    private final void deleteFromOrderList(Map<Integer, Integer> orderList, Scanner userInput, MenuItem item,
+            int itemQunty) {
 
         this.colorConsole("\nchoice: Delete item\n", CYAN, true);
 
@@ -375,7 +383,8 @@ public class OrderingSystem {
         }
     }
 
-    public void replaceInOrderList(Map<Integer, Integer> orderList, Scanner userInput, MenuItem item, int itemQunty) {
+    private final void replaceInOrderList(Map<Integer, Integer> orderList, Scanner userInput, MenuItem item,
+            int itemQunty) {
 
         this.colorConsole("\nchoice: Replace with new\n", CYAN, true);
 
@@ -411,7 +420,7 @@ public class OrderingSystem {
         }
     }
 
-    public void removeEntireItemFromOrderList(Map<Integer, Integer> orderList, int itemId) {
+    private final void removeEntireItemFromOrderList(Map<Integer, Integer> orderList, int itemId) {
 
         this.colorConsole("\nchoice: Remove this entire item from order list\n", CYAN, true);
         orderList.remove(itemId);
