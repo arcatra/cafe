@@ -145,8 +145,7 @@ public class OrderingSystem {
         String choice;
 
         this.colorConsole("\nConfirm your order!\n", BRIGHTPINK, true);
-        System.out.println("\nOrder list (ID=quty): " + orderList.toString());
-        this.displayOrderDetails(orderList);
+        this.displayOrderList(orderList);
 
         this.colorConsole("\nDo you want anything else? (y/n)('y' to add): ", BRIGHTYELLOW, true);
         choice = userInput.nextLine().toLowerCase();
@@ -155,7 +154,8 @@ public class OrderingSystem {
             this.displayMenu();
             this.takeOrder((this.menuSize), userInput);
             this.colorConsole("\nConfirm your order!\n", BRIGHTPINK, true);
-            this.displayOrderDetails(orderList);
+            this.displayOrderList(orderList);
+            
         }
 
         this.colorConsole("\nDo you want to proceed for billing (y/n)('n' to update): ", BRIGHTYELLOW, true);
@@ -175,7 +175,6 @@ public class OrderingSystem {
 
     public void updateOrder(Map<Integer, Integer> orderList, Scanner userInput, int breakPoint) {
         this.displayMenu();
-        System.out.println(RESET + "\nYour ORDER LIST is(ID=quty): " + orderList.toString());
         System.out.println(BRIGHTPINK + "\nPlease enter the existing ITEM ID, to update with new ITEM ID");
         System.out.println("or enter " + breakPoint + " to EXIT from updating order\n" + RESET);
 
@@ -190,28 +189,27 @@ public class OrderingSystem {
             if (orderList.containsKey(oldItemId)) {
                 MenuItem item = menu.get(oldItemId);
                 int itemQunty = orderList.get(oldItemId);
-
                 int choice = this.getUserUpdateChoice(item.itemName, itemQunty, userInput);
 
-                  switch (choice) {
+                switch (choice) {
                     case 1:
-                      this.deleteFromOrderList(orderList, userInput, item, itemQunty);
-                      break;
+                        this.deleteFromOrderList(orderList, userInput, item, itemQunty);
+                        break;
 
                     case 2:
-                      this.replaceInOrderList(orderList, userInput, item, itemQunty);
-                      break;
+                        this.replaceInOrderList(orderList, userInput, item, itemQunty);
+                        break;
 
                     case 3:
-                      this.removeEntireItemFromOrderList(orderList, oldItemId);
-                      break;
+                        this.removeEntireItemFromOrderList(orderList, oldItemId);
+                        break;
 
                     default:
-                      System.out.println("Invalid input, Try again\n");
+                        System.out.println("Invalid input, Try again\n");
                 }
 
-                System.out.println(RESET + "Your updated order list is(ID=quty): " + orderList.toString());
-                
+                this.displayOrderList(orderList);
+
             } else {
                 System.out.println("\nThe item ID " + oldItemId
                         + " didn't exist's in your order, check and enter again!\n");
@@ -226,13 +224,13 @@ public class OrderingSystem {
 
         System.out.printf("%-18s %-1s\n", "Item Name", "Price");
 
-        this.displayOrderDetails(orderList);
+        this.displayOrderList(orderList);
         double total = this.getOrderTotal(orderList);
 
-        System.out.println("--------------------------------");
-        System.out.printf("%-19s", "Total");
+        System.out.println("--------------------------------------------");
+        System.out.printf("%-26s", "Total");
         System.out.printf("Rs %-1.2f %-1s", total, "/-");
-        System.out.println("\n--------------------------------");
+        System.out.println("\n--------------------------------------------");
         System.out.println(RESET);
 
     }
@@ -267,16 +265,25 @@ public class OrderingSystem {
 
     // Displaying the order details before BILL ----------------------
 
-    private final void displayOrderDetails(Map<Integer, Integer> orderList) {
-        System.out.println("");
+    private void displayOrderList(Map<Integer, Integer> orderList) {
+        if (orderList.size() < 1) {
+            System.out.println("Error: no orders found to display\n");
+            return;
+
+        }
+
+        System.out.println("Your order list: ");
+
         for (var itemEntry : orderList.entrySet()) {
-            MenuItem item = menu.get(itemEntry.getKey());
-            BigDecimal quantity = new BigDecimal(itemEntry.getValue());
+          int id = itemEntry.getKey();
 
-            String itemNameAndQuty = item.itemName + " x " + quantity;
-            String price = "Rs " + String.format("%.2f", (item.price.multiply(quantity)).doubleValue()) + " /-";
+          MenuItem item = menu.get(id);
+          BigDecimal quantity = new BigDecimal(itemEntry.getValue());
 
-            System.out.printf("%-18s %-1s\n", itemNameAndQuty, price);
+          String itemNameAndQuty = item.itemName + " x " + quantity;
+          String price = "Rs " + String.format("%.2f", (item.price.multiply(quantity)).doubleValue()) + " /-";
+
+          System.out.printf("ID: %d, %-18s %-1s\n", id, itemNameAndQuty, price);
         }
 
     }
@@ -341,15 +348,18 @@ public class OrderingSystem {
                 "Replace with new (only one at a time)",
                 "Remove this entire item from order list");
         int chId;
-        while (true) {
-          String choice = userInput.nextInt();
-          try {
-            chId = Interger.parseInt(choice);
 
-          } catch (InputMismatchException) {
-            System.out.println("Wrong input, try again\n");
-          
-          }
+        while (true) {
+            String choice = userInput.nextLine();
+
+            try {
+                chId = Integer.parseInt(choice);
+                break;
+
+            } catch (Exception e) {
+                System.out.println("Nope, invalid choice!, try again\n");
+
+            }
 
         }
 
